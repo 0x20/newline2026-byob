@@ -202,42 +202,15 @@ for (let i = 0; i < bubbleCount; i++) {
     bubbles.push(new Bubble(radius, position));
 }
 
-
-
-// Mouse interaction
-const mouse = new THREE.Vector2();
-const raycaster = new THREE.Raycaster();
-
-window.addEventListener('mousemove', (event) => {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-});
-
 // Animation loop
 let time = 0;
-let envMapUpdated = false;
 
 function animate() {
     requestAnimationFrame(animate);
     time += 0.01;
-    
+
     // Update bubbles
     bubbles.forEach(bubble => bubble.update(time));
-
-    // Mouse interaction - gentle repulsion
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(bubbles.map(b => b.mesh));
-
-    if (intersects.length > 0) {
-        const bubble = bubbles.find(b => b.mesh === intersects[0].object);
-        if (bubble) {
-            const direction = new THREE.Vector3()
-                .subVectors(bubble.mesh.position, intersects[0].point)
-                .normalize()
-                .multiplyScalar(0.1);
-            bubble.mesh.position.add(direction);
-        }
-    }
 
     renderer.render(scene, camera);
 }
