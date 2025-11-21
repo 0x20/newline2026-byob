@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js';
-import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -21,7 +20,6 @@ camera.position.z = 0;
 
 // Load header texture and create plane
 const textureLoader = new THREE.TextureLoader();
-let posterPlane;
 
 textureLoader.load('img/poster2026bw4.png', (texture) => {
     const aspectRatio = texture.image.width / texture.image.height;
@@ -39,43 +37,10 @@ textureLoader.load('img/poster2026bw4.png', (texture) => {
         transparent: false
     });
 
-    posterPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+    const posterPlane = new THREE.Mesh(planeGeometry, planeMaterial);
     posterPlane.position.z = -15;
     posterPlane.position.y = 0;
     scene.add(posterPlane);
-});
-
-// Load STL file (3D extruded version)
-const stlLoader = new STLLoader();
-let posterSTL;
-
-stlLoader.load('img/poster2026bw4.stl', (geometry) => {
-    // Center the geometry
-    geometry.center();
-
-    // Create material for the STL
-    const stlMaterial = new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        roughness: 0.5,
-        metalness: 0.5,
-        side: THREE.DoubleSide
-    });
-
-    posterSTL = new THREE.Mesh(geometry, stlMaterial);
-
-    // Position at the same spot as the 2D texture
-    posterSTL.position.z = -15;
-    posterSTL.position.y = 0;
-
-    // Scale to match the 2D plane size (height = 20)
-    // You may need to adjust this scale factor based on your STL's original size
-    const box = new THREE.Box3().setFromObject(posterSTL);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    const scaleFactor = 20 / size.y;
-    posterSTL.scale.set(scaleFactor, scaleFactor, scaleFactor);
-
-    // scene.add(posterSTL);
 });
 
 // Lighting - bright saturated colors
