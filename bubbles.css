@@ -1,0 +1,47 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif;
+    background: linear-gradient(180deg, #FF5A6E 0%, #FF7A58 35%, #FFA048 70%, #FFB640 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    color: #fff;
+}
+
+#poster-bg {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 90%;
+    max-height: 90vh;
+    z-index: 0;
+    object-fit: contain;
+}
+
+#canvas-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+#canvas-container canvas {
+    background: transparent !important;
+}
+
+.content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 50px 20px;
+    pointer-events: none;
+    display: none;
+}
