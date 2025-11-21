@@ -22,6 +22,9 @@ camera.position.z = 0;
 const textureLoader = new THREE.TextureLoader();
 
 textureLoader.load('img/poster2026bw4.png', (texture) => {
+    // Enable anisotropic filtering for smoother edges
+    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
     const aspectRatio = texture.image.width / texture.image.height;
     const planeHeight = 20;
     const planeWidth = planeHeight * aspectRatio;
@@ -33,7 +36,7 @@ textureLoader.load('img/poster2026bw4.png', (texture) => {
         emissive: 0xffffff,
         emissiveMap: texture,
         emissiveIntensity: 0.8,
-        alphaTest: 0.5,
+        alphaTest: 0.1,
         transparent: false
     });
 
