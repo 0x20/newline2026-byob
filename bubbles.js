@@ -16,7 +16,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-camera.position.z = 30;
+camera.position.z = 0;
 
 // Load header texture and create plane
 const textureLoader = new THREE.TextureLoader();
@@ -31,12 +31,12 @@ textureLoader.load('img/poster2026bw4.png', (texture) => {
     const planeMaterial = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
-        opacity: 0.8,
+        opacity: 1.0,
         side: THREE.DoubleSide
     });
 
     posterPlane = new THREE.Mesh(planeGeometry, planeMaterial);
-    posterPlane.position.z = -20;
+    posterPlane.position.z = -15;
     posterPlane.position.y = 0;
     scene.add(posterPlane);
 });
@@ -147,11 +147,11 @@ class Bubble {
 const perlin = new ImprovedNoise();
 const terrainGeometry = new THREE.PlaneGeometry(400, 400, 128, 128);
 const terrainMaterial = new THREE.MeshStandardMaterial({
-    color: 0xFFFFFF,
+    color: 0xFF0000,
     roughness: 0.8,
-    metalness: 0.1,
+    metalness: 0.9,
     flatShading: false,
-    wireframe: true
+    wireframe: false
 });
 
 const terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
