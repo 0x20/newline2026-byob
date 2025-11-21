@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -28,17 +29,53 @@ textureLoader.load('img/poster2026bw4.png', (texture) => {
     const planeWidth = planeHeight * aspectRatio;
 
     const planeGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
-    const planeMaterial = new THREE.MeshBasicMaterial({
+    const planeMaterial = new THREE.MeshStandardMaterial({
         map: texture,
-        transparent: true,
-        opacity: 1.0,
-        side: THREE.DoubleSide
+        side: THREE.DoubleSide,
+        emissive: 0xffffff,
+        emissiveMap: texture,
+        emissiveIntensity: 0.8,
+        alphaTest: 0.5,
+        transparent: false
     });
 
     posterPlane = new THREE.Mesh(planeGeometry, planeMaterial);
     posterPlane.position.z = -15;
     posterPlane.position.y = 0;
     scene.add(posterPlane);
+});
+
+// Load STL file (3D extruded version)
+const stlLoader = new STLLoader();
+let posterSTL;
+
+stlLoader.load('img/poster2026bw4.stl', (geometry) => {
+    // Center the geometry
+    geometry.center();
+
+    // Create material for the STL
+    const stlMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.5,
+        metalness: 0.5,
+        side: THREE.DoubleSide
+    });
+
+    posterSTL = new THREE.Mesh(geometry, stlMaterial);
+
+    // Position at the same spot as the 2D texture
+    posterSTL.position.z = -15;
+    posterSTL.position.y = 0;
+
+    // Scale to match the 2D plane size (height = 20)
+    // You may need to adjust this scale factor based on your STL's original size
+    const box = new THREE.Box3().setFromObject(posterSTL);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const scaleFactor = 20 / size.y;
+    posterSTL.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+    // scene.add(posterSTL);
 });
 
 // Lighting - bright saturated colors
