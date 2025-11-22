@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js';
+import { GUI } from 'lil-gui';
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -148,7 +149,7 @@ class Bubble {
     }
 }
 
-// Create white terrain with Perlin noise
+// Create terrain with animated Perlin noise
 const perlin = new ImprovedNoise();
 const terrainGeometry = new THREE.PlaneGeometry(400, 400, 128, 128);
 const terrainMaterial = new THREE.MeshStandardMaterial({
@@ -163,30 +164,59 @@ const terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
 terrain.rotation.x = -Math.PI / 2;
 terrain.position.y = -15;
 terrain.position.z = 15;
+scene.add(terrain);
 
-// Apply Perlin noise to terrain vertices
+// Store original vertex positions for reference
 const positionAttribute = terrainGeometry.getAttribute('position');
+const originalPositions = new Float32Array(positionAttribute.count * 2);
 for (let i = 0; i < positionAttribute.count; i++) {
-    const x = positionAttribute.getX(i);
-    const y = positionAttribute.getY(i);
-
-    let height = 0;
-    let amplitude = 18;
-    let frequency = 0.005;
-
-    // Multiple octaves for more natural terrain
-    for (let octave = 0; octave < 4; octave++) {
-        height += perlin.noise(x * frequency, y * frequency, 0) * amplitude;
-        amplitude *= 0.5;
-        frequency *= 2;
-    }
-
-    positionAttribute.setZ(i, height);
+    originalPositions[i * 2] = positionAttribute.getX(i);
+    originalPositions[i * 2 + 1] = positionAttribute.getY(i);
 }
 
-positionAttribute.needsUpdate = true;
-terrainGeometry.computeVertexNormals();
-scene.add(terrain);
+// Function to update terrain based on real audio frequency bands
+function updateTerrain(monitor) {
+    // Use real audio data from microphone with intensity multiplier
+    const intensity = settings.audioIntensity;
+    const bassFreq = monitor.bass * intensity;
+    const midFreq = monitor.mid * intensity; 
+    const highFreq = monitor.high * intensity; 
+
+    for (let i = 0; i < positionAttribute.count; i++) {
+        const x = originalPositions[i * 2];
+        const y = originalPositions[i * 2 + 1];
+
+        let height = 0;
+        let amplitude = 18;
+        let frequency = 0.005;
+
+        // Octave 0: Influenced by BASS (large scale)
+        height += perlin.noise(x * frequency, y * frequency, 0) * amplitude * (0.8 + bassFreq * 0.4);
+
+        amplitude *= 0.5;
+        frequency *= 2;
+
+        // Octave 1: Influenced by MID (medium scale)
+        height += perlin.noise(x * frequency, y * frequency, 0) * amplitude * (1 + midFreq * 0.6);
+
+        amplitude *= 0.5;
+        frequency *= 2;
+
+        // Octave 2: Influenced by MID-HIGH
+        height += perlin.noise(x * frequency, y * frequency, 0) * amplitude * (1 + midFreq * 0.4);
+
+        amplitude *= 0.5;
+        frequency *= 2;
+
+        // Octave 3: Influenced by HIGH (small scale, erratic)
+        height += perlin.noise(x * frequency, y * frequency, 0) * amplitude * (1 + highFreq * 1.5);
+
+        positionAttribute.setZ(i, height);
+    }
+
+    positionAttribute.needsUpdate = true;
+    terrainGeometry.computeVertexNormals();
+}
 
 // Create bubbles
 const bubbles = [];
@@ -202,6 +232,80 @@ for (let i = 0; i < bubbleCount; i++) {
     bubbles.push(new Bubble(radius, position));
 }
 
+// Audio setup
+let audioContext;
+let analyser;
+let dataArray;
+let bufferLength;
+const audioMonitor = { bass: 0, mid: 0, high: 0 };
+
+async function setupAudio() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+
+        const source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+
+        console.log('Microphone connected');
+    } catch (err) {
+        console.error('Error accessing microphone:', err);
+    }
+}
+
+// Call audio setup
+setupAudio();
+
+// Function to analyze frequency bands
+function analyzeFrequencies() {
+    if (!analyser) return;
+
+    analyser.getByteFrequencyData(dataArray);
+
+    // Divide frequency spectrum into 3 bands
+    const bass = dataArray.slice(0, Math.floor(bufferLength * 0.15)); // 0-15% (low frequencies)
+    const mid = dataArray.slice(Math.floor(bufferLength * 0.15), Math.floor(bufferLength * 0.5)); // 15-50% (mid frequencies)
+    const high = dataArray.slice(Math.floor(bufferLength * 0.5), bufferLength); // 50-100% (high frequencies)
+
+    // Calculate average for each band and normalize to 0-1
+    audioMonitor.bass = bass.reduce((a, b) => a + b, 0) / bass.length / 255;
+    audioMonitor.mid = mid.reduce((a, b) => a + b, 0) / mid.length / 255;
+    audioMonitor.high = high.reduce((a, b) => a + b, 0) / high.length / 255;
+}
+
+// Settings
+const settings = {
+    audioIntensity: 3.0
+};
+
+// Debug GUI setup
+const gui = new GUI();
+
+// Audio intensity control
+gui.add(settings, 'audioIntensity', 0, 5).name('Audio Intensity').step(0.1);
+
+const audioFolder = gui.addFolder('Frequency Bands');
+audioFolder.add(audioMonitor, 'bass', 0, 1).name('Bass (Low)').disable().listen();
+audioFolder.add(audioMonitor, 'mid', 0, 1).name('Mid (Treble)').disable().listen();
+audioFolder.add(audioMonitor, 'high', 0, 1).name('High (Erratic)').disable().listen();
+audioFolder.open();
+
+// Toggle debug menu with 'd' key
+// gui.hide(); // Start visible for development
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'd' || e.key === 'D') {
+        if (gui._hidden) {
+            gui.show();
+        } else {
+            gui.hide();
+        }
+    }
+});
+
 // Animation loop
 let time = 0;
 
@@ -209,8 +313,14 @@ function animate() {
     requestAnimationFrame(animate);
     time += 0.01;
 
+    // Analyze audio frequencies from microphone
+    analyzeFrequencies();
+
     // Update bubbles
     bubbles.forEach(bubble => bubble.update(time));
+
+    // Update terrain with real audio frequency bands
+    updateTerrain(audioMonitor);
 
     renderer.render(scene, camera);
 }
