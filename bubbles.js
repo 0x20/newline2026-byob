@@ -105,46 +105,41 @@ class Bubble {
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(position);
 
-        // Random velocity for floating
-        this.velocity = new THREE.Vector3(
-            (Math.random() - 0.5) * 0.02,
-            (Math.random() - 0.5) * 0.02,
-            (Math.random() - 0.5) * 0.02
-        );
+        // Helix parameters
+        this.helixRadius = 3 + Math.random() * 8; // Distance from center (3-11 units)
+        this.helixAngle = Math.random() * Math.PI * 2; // Starting angle around center
+        this.helixSpeed = 0.3 + Math.random() * 0.5; // Rotation speed around center
+        this.riseSpeed = 0.02 + Math.random() * 0.02; // Upward speed
+        this.centerZ = -15; // Poster's Z position (center of helix)
 
-        // Random rotation speeds
+        // Random rotation speeds for bubble spinning
         this.rotationSpeed = new THREE.Vector3(
             (Math.random() - 0.5) * 0.01,
             (Math.random() - 0.5) * 0.01,
             (Math.random() - 0.5) * 0.01
         );
 
-        // Float parameters
-        this.floatOffset = Math.random() * Math.PI * 2;
-        this.floatSpeed = 0.5 + Math.random() * 0.5;
-        this.floatAmplitude = 0.5 + Math.random() * 1;
-
         scene.add(this.mesh);
     }
 
     update(time) {
-        // Floating motion
-        this.mesh.position.y += Math.sin(time * this.floatSpeed + this.floatOffset) * 0.01 * this.floatAmplitude;
-        this.mesh.position.x += Math.cos(time * this.floatSpeed * 0.7 + this.floatOffset) * 0.008 * this.floatAmplitude;
+        // Helix motion: rotate around center and rise
+        this.helixAngle += this.helixSpeed * 0.01;
+        this.mesh.position.x = Math.cos(this.helixAngle) * this.helixRadius;
+        this.mesh.position.z = this.centerZ + Math.sin(this.helixAngle) * this.helixRadius;
 
-        // Gentle drift
-        this.mesh.position.add(this.velocity);
+        // Rise upward
+        this.mesh.position.y += this.riseSpeed;
 
-        // Rotation
+        // Reset to bottom when too high
+        if (this.mesh.position.y > 40) {
+            this.mesh.position.y = -40;
+        }
+
+        // Bubble rotation
         this.mesh.rotation.x += this.rotationSpeed.x;
         this.mesh.rotation.y += this.rotationSpeed.y;
         this.mesh.rotation.z += this.rotationSpeed.z;
-
-        // Boundary checking - wrap around
-        const bounds = 40;
-        if (Math.abs(this.mesh.position.x) > bounds) this.mesh.position.x *= -0.8;
-        if (Math.abs(this.mesh.position.y) > bounds) this.mesh.position.y *= -0.8;
-        if (Math.abs(this.mesh.position.z) > bounds) this.mesh.position.z *= -0.8;
     }
 }
 
