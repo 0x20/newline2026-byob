@@ -7,7 +7,7 @@
 body {
     overflow: hidden;
     font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif;
-    background: linear-gradient(180deg, #FF5A6E 0%, #FF7A58 35%, #FFA048 70%, #FFB640 100%);
+    background: linear-gradient(180deg, #87CEEB 0%, #4FC3F7 35%, #29B6F6 70%, #03A9F4 100%);
     background-attachment: fixed;
     min-height: 100vh;
     color: #fff;

@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js';
+import { EffectComposer, RenderPass } from 'postprocessing';
+import { GodraysPass } from 'https://unpkg.com/three-good-godrays@0.7.1/build/three-good-godrays.esm.js';
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -13,7 +15,10 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.8;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = true;
 document.getElementById('canvas-container').appendChild(renderer.domElement);
 
 camera.position.z = 0;
@@ -43,28 +48,68 @@ textureLoader.load('img/poster2026bw4.png', (texture) => {
     const posterPlane = new THREE.Mesh(planeGeometry, planeMaterial);
     posterPlane.position.z = -15;
     posterPlane.position.y = 0;
+    posterPlane.castShadow = true;
+    posterPlane.receiveShadow = true;
     scene.add(posterPlane);
 });
 
+// Create sun
+const sunPosition = new THREE.Vector3(-30, 20, 15);
+const sunGeometry = new THREE.SphereGeometry(8, 32, 32);
+const sunMaterial = new THREE.MeshBasicMaterial({
+    color: 0xFFFFAA
+});
+const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+sun.position.copy(sunPosition);
+sun.castShadow = true;
+sun.receiveShadow = false;
+scene.add(sun);
+
+// Add sun glow
+const glowGeometry = new THREE.SphereGeometry(12, 32, 32);
+const glowMaterial = new THREE.MeshBasicMaterial({
+    color: 0xFFDD88,
+    transparent: true,
+    opacity: 0.3
+});
+const sunGlow = new THREE.Mesh(glowGeometry, glowMaterial);
+sunGlow.position.copy(sunPosition);
+sunGlow.castShadow = true;
+sunGlow.receiveShadow = false;
+scene.add(sunGlow);
+
 // Lighting - bright saturated colors
-const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+const ambientLight = new THREE.AmbientLight(0xffffff, 2.5);
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-directionalLight.position.set(5, 5, 5);
+const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 6);
+directionalLight.position.copy(sunPosition);
+directionalLight.target.position.set(0, 0, 0);
+directionalLight.castShadow = true;
+directionalLight.shadow.mapSize.width = 2048;
+directionalLight.shadow.mapSize.height = 2048;
+directionalLight.shadow.camera.near = 0.5;
+directionalLight.shadow.camera.far = 500;
+directionalLight.shadow.camera.left = -100;
+directionalLight.shadow.camera.right = 100;
+directionalLight.shadow.camera.top = 100;
+directionalLight.shadow.camera.bottom = -100;
 scene.add(directionalLight);
+scene.add(directionalLight.target);
 
-const pointLight1 = new THREE.PointLight(0xFF4500, 3, 100);
+const pointLight1 = new THREE.PointLight(0x00CED1, 2, 100); // Cyan
 pointLight1.position.set(-10, 10, 10);
 scene.add(pointLight1);
 
-const pointLight2 = new THREE.PointLight(0xFFD700, 3, 100);
+const pointLight2 = new THREE.PointLight(0x4FC3F7, 2, 100); // Sky blue
 pointLight2.position.set(10, -10, 10);
 scene.add(pointLight2);
 
-const pointLight3 = new THREE.PointLight(0xFF1493, 2.5, 100);
+const pointLight3 = new THREE.PointLight(0x81D4FA, 1.5, 100); // Light blue
 pointLight3.position.set(0, 0, 20);
 scene.add(pointLight3);
+
+// God rays will be added via post-processing with three-good-godrays
 
 // Create environment map for bubble refraction
 const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(512);
@@ -76,10 +121,10 @@ class Bubble {
     constructor(radius, position) {
         const geometry = new THREE.SphereGeometry(radius, 64, 64);
 
-        // Generate random yellow/red/orange tint - red always dominant to avoid green
-        const r = 240 + Math.floor(Math.random() * 16); // 240-255 (always high red)
-        const g = 120 + Math.floor(Math.random() * 121); // 120-240 (always <= red for warm tones)
-        const b = 60 + Math.floor(Math.random() * 81); // 60-140 (keep low to stay warm)
+        // Generate random blueish tint - like real soap bubbles
+        const r = 180 + Math.floor(Math.random() * 50); // 180-230 (medium-high red)
+        const g = 220 + Math.floor(Math.random() * 36); // 220-255 (high green)
+        const b = 240 + Math.floor(Math.random() * 16); // 240-255 (always high blue)
         const tintedColor = (r << 16) | (g << 8) | b;
 
         // Create iridescent bubble material
@@ -104,6 +149,8 @@ class Bubble {
 
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(position);
+        this.mesh.castShadow = true;
+        this.mesh.receiveShadow = true;
 
         // Random velocity for floating
         this.velocity = new THREE.Vector3(
@@ -152,10 +199,12 @@ class Bubble {
 const perlin = new ImprovedNoise();
 const terrainGeometry = new THREE.PlaneGeometry(400, 400, 128, 128);
 const terrainMaterial = new THREE.MeshStandardMaterial({
-    color: 0xFF0000,
-    roughness: 0.8,
-    metalness: 0.9,
-    flatShading: false,
+    color: 0x66BB6A,
+    emissive: 0x4CAF50,
+    emissiveIntensity: 0.5,
+    roughness: 0.05,
+    metalness: 0.95,
+    flatShading: true,
     wireframe: false
 });
 
@@ -186,6 +235,8 @@ for (let i = 0; i < positionAttribute.count; i++) {
 
 positionAttribute.needsUpdate = true;
 terrainGeometry.computeVertexNormals();
+terrain.castShadow = true;
+terrain.receiveShadow = true;
 scene.add(terrain);
 
 // Create bubbles
@@ -202,6 +253,23 @@ for (let i = 0; i < bubbleCount; i++) {
     bubbles.push(new Bubble(radius, position));
 }
 
+// Set up post-processing with god rays
+const composer = new EffectComposer(renderer);
+
+const godraysPass = new GodraysPass(directionalLight, camera, {
+    density: 1/300,
+    maxDensity: 0.25,
+    edgeStrength: 15,
+    edgeRadius: 1,
+    distanceAttenuation: 3,
+    color: new THREE.Color(0xFFFFFF),
+    raymarchSteps: 100,
+    blur: false,
+    gammaCorrection: true
+});
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(godraysPass);
+
 // Animation loop
 let time = 0;
 
@@ -212,7 +280,7 @@ function animate() {
     // Update bubbles
     bubbles.forEach(bubble => bubble.update(time));
 
-    renderer.render(scene, camera);
+    composer.render();
 }
 
 // Handle window resize
@@ -220,6 +288,7 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
 });
 
 animate();
