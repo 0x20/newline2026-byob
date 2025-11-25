@@ -151,10 +151,10 @@ class Bubble {
     constructor(radius, position) {
         const geometry = new THREE.SphereGeometry(radius, 64, 64);
 
-        // Generate random yellow/red/orange tint - red always dominant to avoid green
-        const r = 240 + Math.floor(Math.random() * 16); // 240-255 (always high red)
-        const g = 120 + Math.floor(Math.random() * 121); // 120-240 (always <= red for warm tones)
-        const b = 60 + Math.floor(Math.random() * 81); // 60-140 (keep low to stay warm)
+        // Generate random light blue to purple tint
+        const r = 173 + Math.floor(Math.random() * 83); // 173-255 (light blue to purple range)
+        const g = 144 + Math.floor(Math.random() * 72); // 144-215 (medium values)
+        const b = 216 + Math.floor(Math.random() * 40); // 216-255 (always high for blue/purple)
         const tintedColor = (r << 16) | (g << 8) | b;
 
         // Create iridescent bubble material
@@ -244,9 +244,9 @@ function getTerrainHeight(x, z) {
 
 const terrainGeometry = new THREE.PlaneGeometry(400, 400, 128, 128);
 const terrainMaterial = new THREE.MeshStandardMaterial({
-    color: 0xFF0000,
+    color: 0x116B11,
     roughness: 0.8,
-    metalness: 0.9,
+    metalness: 0.2,
     flatShading: false,
     wireframe: false
 });
@@ -287,7 +287,7 @@ const grassCount = 100000;
 const grassGeometry = new THREE.PlaneGeometry(1.0, 1.3);
 // Translate geometry so pivot is at bottom instead of center
 grassGeometry.translate(0, 0.65, 0);
-const grassTexture = textureLoader.load('img/icons/grass.png');
+const grassTexture = textureLoader.load('img/icons/grass-green2.png');
 grassTexture.colorSpace = THREE.SRGBColorSpace;
 
 const grassMaterial = new THREE.MeshStandardMaterial({
@@ -318,7 +318,7 @@ for (let i = 0; i < grassCount; i++) {
 
     // Position and randomize
     const rotationY = Math.random() * Math.PI * 2;
-    const scale = 0.8 + Math.random() * 0.4;
+    const scale = 1.6 + Math.random() * 0.8;
 
     dummy.position.set(x, y, z);
     dummy.rotation.set(0, rotationY, 0);
