@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js';
+import Stats from 'three/addons/libs/stats.module.js';
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -17,6 +18,21 @@ renderer.toneMappingExposure = 1.2;
 document.getElementById('canvas-container').appendChild(renderer.domElement);
 
 camera.position.z = 0;
+
+// Stats (FPS counter)
+const stats = new Stats();
+stats.showPanel(0); // 0: fps, 1: ms, 2: mb
+stats.dom.style.display = 'none'; // Hidden by default
+document.body.appendChild(stats.dom);
+
+// Toggle stats with 'd' key
+let statsVisible = false;
+window.addEventListener('keydown', (event) => {
+    if (event.key === 'd' || event.key === 'D') {
+        statsVisible = !statsVisible;
+        stats.dom.style.display = statsVisible ? 'block' : 'none';
+    }
+});
 
 // Load header texture and create plane
 const textureLoader = new THREE.TextureLoader();
@@ -206,6 +222,8 @@ for (let i = 0; i < bubbleCount; i++) {
 let time = 0;
 
 function animate() {
+    stats.begin();
+
     requestAnimationFrame(animate);
     time += 0.01;
 
@@ -213,6 +231,8 @@ function animate() {
     bubbles.forEach(bubble => bubble.update(time));
 
     renderer.render(scene, camera);
+
+    stats.end();
 }
 
 // Handle window resize
