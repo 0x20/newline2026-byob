@@ -208,15 +208,32 @@ scene.add(terrain);
 const bubbles = [];
 const bubbleCount = 25;
 
-for (let i = 0; i < bubbleCount; i++) {
-    const radius = 0.5 + Math.random() * 2.5;
-    const position = new THREE.Vector3(
-        (Math.random() - 0.5) * 60,
-        (Math.random() - 0.5) * 40,
-        (Math.random() - 0.5) * 40 - 10
-    );
-    bubbles.push(new Bubble(radius, position));
+function createBubbles() {
+    // Remove existing bubbles from scene
+    bubbles.forEach(bubble => {
+        scene.remove(bubble.mesh);
+        bubble.mesh.geometry.dispose();
+        bubble.mesh.material.dispose();
+    });
+    bubbles.length = 0;
+
+    // Create new bubbles
+    for (let i = 0; i < bubbleCount; i++) {
+        const radius = 0.5 + Math.random() * 2.5;
+        const position = new THREE.Vector3(
+            (Math.random() - 0.5) * 60,
+            (Math.random() - 0.5) * 40,
+            (Math.random() - 0.5) * 40 - 10
+        );
+        bubbles.push(new Bubble(radius, position));
+    }
 }
+
+// Initial bubble creation
+createBubbles();
+
+// Respawn bubbles every 30 seconds
+setInterval(createBubbles, 30000);
 
 // Animation loop
 let time = 0;
